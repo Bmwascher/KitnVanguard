@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(luacheck Core.lua Modules/SlashCommands.lua --config .luacheckrc)"
+    ]
+  }
+}

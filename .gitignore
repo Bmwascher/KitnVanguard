@@ -1,0 +1,9 @@
+﻿*.lua.bak
+SavedVariables/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+.wow-api-reference/
