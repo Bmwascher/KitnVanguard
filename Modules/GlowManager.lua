@@ -1,90 +1,63 @@
 local _, ns = ...
 
+local LGF = LibStub("LibGetFrame-1.0")
+local LCG = LibStub("LibCustomGlow-1.0")
+
 local GlowManager = {}
 ns.GlowManager = GlowManager
 
-local activeGlows = {} -- parentFrame -> overlay frame
+local GLOW_KEY = "KitnVanguard"
+local activeGlowFrames = {} -- set of frames currently glowing
 
--- Create a glow overlay frame anchored to a raid frame.
--- Parented to UIParent (not the raid frame) to avoid secure frame tree
--- taint and combat lockdown issues with Show/Hide during combat.
-local function createGlowOverlay(raidFrame, playerName)
-    local overlay = CreateFrame("Frame", nil, UIParent)
-    overlay:SetPoint("TOPLEFT", raidFrame, "TOPLEFT")
-    overlay:SetPoint("BOTTOMRIGHT", raidFrame, "BOTTOMRIGHT")
-    overlay:SetFrameStrata(raidFrame:GetFrameStrata())
-    overlay:SetFrameLevel(raidFrame:GetFrameLevel() + 10)
+-- Resolve a player name to a unit token by scanning raid/party members
+local function findUnitByName(playerName)
+    local numMembers = GetNumGroupMembers()
+    if numMembers == 0 then
+        return nil
+    end
 
+    local prefix = IsInRaid() and "raid" or "party"
+    local count = IsInRaid() and numMembers or (numMembers - 1)
+
+    for i = 1, count do
+        local unit = prefix .. i
+        if UnitExists(unit) then
+            local name = UnitName(unit)
+            if name and not issecretvalue(name) and name == playerName then
+                return unit
+            end
+        end
+    end
+
+    -- Check player in party mode
+    if not IsInRaid() then
+        local name = UnitName("player")
+        if name and not issecretvalue(name) and name == playerName then
+            return "player"
+        end
+    end
+
+    return nil
+end
+
+--- Apply a PixelGlow to a raid frame.
+function GlowManager:ApplyGlow(frame)
+    if activeGlowFrames[frame] then
+        return
+    end
     local color = ns.db and ns.db.glowColor or { r = 1, g = 0.8, b = 0, a = 1 }
-    local borderSize = 2
-
-    -- Semi-transparent colored fill
-    local fill = overlay:CreateTexture(nil, "OVERLAY")
-    fill:SetAllPoints()
-    fill:SetColorTexture(color.r, color.g, color.b, 0.2)
-
-    -- Border edges
-    local top = overlay:CreateTexture(nil, "OVERLAY")
-    top:SetColorTexture(color.r, color.g, color.b, color.a)
-    top:SetPoint("TOPLEFT")
-    top:SetPoint("TOPRIGHT")
-    top:SetHeight(borderSize)
-
-    local bottom = overlay:CreateTexture(nil, "OVERLAY")
-    bottom:SetColorTexture(color.r, color.g, color.b, color.a)
-    bottom:SetPoint("BOTTOMLEFT")
-    bottom:SetPoint("BOTTOMRIGHT")
-    bottom:SetHeight(borderSize)
-
-    local left = overlay:CreateTexture(nil, "OVERLAY")
-    left:SetColorTexture(color.r, color.g, color.b, color.a)
-    left:SetPoint("TOPLEFT")
-    left:SetPoint("BOTTOMLEFT")
-    left:SetWidth(borderSize)
-
-    local right = overlay:CreateTexture(nil, "OVERLAY")
-    right:SetColorTexture(color.r, color.g, color.b, color.a)
-    right:SetPoint("TOPRIGHT")
-    right:SetPoint("BOTTOMRIGHT")
-    right:SetWidth(borderSize)
-
-    -- Player name text for absolute clarity
-    local text = overlay:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    text:SetPoint("CENTER")
-    text:SetText(playerName)
-    text:SetTextColor(color.r, color.g, color.b, 1)
-    overlay.nameText = text
-
-    -- Pulse animation for visibility
-    local ag = overlay:CreateAnimationGroup()
-    ag:SetLooping("BOUNCE")
-    local alpha = ag:CreateAnimation("Alpha")
-    alpha:SetFromAlpha(1)
-    alpha:SetToAlpha(0.4)
-    alpha:SetDuration(0.5)
-    overlay.pulseAnim = ag
-
-    overlay:Show()
-    ag:Play()
-
-    return overlay
+    -- PixelGlow_Start(frame, color, N, frequency, length, thickness, xOff, yOff, border, key)
+    LCG.PixelGlow_Start(frame, { color.r, color.g, color.b, color.a },
+        8, 0.25, nil, 2, 0, 0, true, GLOW_KEY)
+    activeGlowFrames[frame] = true
 end
 
---- Apply a glow overlay to a raid frame.
-function GlowManager:ApplyGlow(frame, playerName)
-    if activeGlows[frame] then
-        return -- already glowing this frame
-    end
-    activeGlows[frame] = createGlowOverlay(frame, playerName)
-end
-
---- Remove all active glow overlays.
+--- Remove all active glows.
 function GlowManager:RemoveAllGlows()
-    for _, overlay in pairs(activeGlows) do
-        overlay.pulseAnim:Stop()
-        overlay:Hide()
+    for frame in pairs(activeGlowFrames) do
+        LCG.PixelGlow_Stop(frame, GLOW_KEY)
     end
-    wipe(activeGlows)
+    wipe(activeGlowFrames)
 end
 
 --- Callback handler for DebuffDetector assignment changes.
@@ -95,9 +68,14 @@ function GlowManager:OnAssignmentChanged(assignedTarget)
         return
     end
 
-    local frame = ns.FrameFinder:FindFrameByName(assignedTarget)
+    local unitToken = findUnitByName(assignedTarget)
+    if not unitToken then
+        return
+    end
+
+    local frame = LGF.GetUnitFrame(unitToken)
     if frame then
-        self:ApplyGlow(frame, assignedTarget)
+        self:ApplyGlow(frame)
     end
 end
 

@@ -49,9 +49,6 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         if ns.DebuffDetector then
             ns.DebuffDetector:Initialize()
         end
-        if ns.FrameFinder then
-            ns.FrameFinder:Initialize()
-        end
         if ns.GlowManager then
             ns.GlowManager:Initialize()
         end

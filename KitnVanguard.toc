@@ -4,12 +4,19 @@
 ## Author: Kitn
 ## Version: @project-version@
 ## SavedVariables: KitnVanguardDB
+## OptionalDeps: Masque
 ## IconTexture: Interface\Icons\Spell_Holy_DispelMagic
 ## X-Website: https://github.com/Bmwascher/KitnVanguard
 
+# Libraries
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+Libs\LibGetFrame-1.0\LibGetFrame-1.0.lua
+Libs\LibCustomGlow-1.0\LibCustomGlow-1.0.lua
+
+# Core
 Core.lua
 Modules\PriorityEngine.lua
 Modules\DebuffDetector.lua
-Modules\FrameFinder.lua
 Modules\GlowManager.lua
 Modules\SlashCommands.lua

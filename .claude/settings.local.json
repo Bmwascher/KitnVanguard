@@ -3,7 +3,9 @@
     "allow": [
       "Bash(luacheck Core.lua Modules/SlashCommands.lua --config .luacheckrc)",
       "Bash(luacheck:*)",
-      "WebFetch(domain:warcraft.wiki.gg)"
+      "WebFetch(domain:warcraft.wiki.gg)",
+      "Bash(curl:*)",
+      "Bash(python3 -c \"import sys,json; [print\\(f[''''name'''']\\) for f in json.loads\\(sys.stdin.read\\(\\)\\)]\")"
     ]
   }
 }

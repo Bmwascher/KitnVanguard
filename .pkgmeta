@@ -1,0 +1,22 @@
+package-as: KitnVanguard
+
+ignore:
+  - .github
+  - .claude
+  - .pkgmeta
+  - .luacheckrc
+  - .gitignore
+  - .wow-api-reference
+  - KitnVanguard_SPEC.md
+
+externals:
+  Libs/LibStub:
+    url: https://repos.wowace.com/wow/libstub/trunk
+    tag: latest
+  Libs/CallbackHandler-1.0:
+    url: https://repos.wowace.com/wow/callbackhandler/trunk/CallbackHandler-1.0
+    tag: latest
+  Libs/LibGetFrame-1.0:
+    url: https://github.com/mrbuds/LibGetFrame
+  Libs/LibCustomGlow-1.0:
+    url: https://github.com/Stanzilla/LibCustomGlow

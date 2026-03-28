@@ -28,6 +28,26 @@ KitnVanguard/
 └── .claude/                    # Claude Code config
 ```
 
+## IMPORTANT: Debug-First Workflow
+NEVER guess at fixes or randomly edit code when something isn't working.
+Always follow this sequence:
+
+1. GATHER DATA FIRST — Create a small in-game debug macro or /run command
+   to print the actual values, table structures, or event payloads involved.
+   Paste the output back here before making any code changes.
+2. DIAGNOSE — Analyze the debug output to identify the actual root cause.
+   Many issues in 12.0 are caused by secret values or changed API behavior
+   that can only be confirmed with real in-game data.
+3. PROPOSE — Suggest a targeted fix based on the diagnosis. Explain WHY
+   the fix works, not just what it changes.
+4. IMPLEMENT — Only after the diagnosis is confirmed, make the minimal
+   code change needed. Do not refactor unrelated code at the same time.
+5. VERIFY — Run luacheck, then remind the user to /reload and test.
+
+When the user reports "X isn't working," your FIRST response should be a
+debug command to run in-game, NOT a code edit. The WoW runtime is the
+source of truth — not assumptions about how APIs behave.
+
 ## CRITICAL: WoW 12.0 API Compliance
 This addon runs INSIDE raid instances during COMBAT. Secret Values and
 instance restrictions are directly relevant to every line of code.
@@ -39,16 +59,23 @@ BEFORE writing ANY code:
 4. NEVER assume an API works the same as pre-12.0
 5. After writing combat code, run the api-validator agent
 
+### VERIFIED IN-GAME (March 2026):
+- C_UnitAuras.GetAuraDataByIndex() returns SECRET fields inside instances
+  (spellId, name, isHarmful, dispelName, duration — all secret)
+- UNIT_AURA event info.addedAuras table returns CLEAN non-secret values
+  (spellId, name, dispelName, isHarmful — all readable)
+- auraInstanceID is NOT secret in either path
+- Player names via UnitName() are NOT secret for raid members
+- The correct approach: use event payload (info.addedAuras) for detection,
+  NEVER scan with GetAuraDataByIndex inside instances
+
 ### Specific to this addon:
-- Player names (UnitName for raid members) are NOT secret — safe to use
-- UNIT_AURA event still fires in 12.0 — this is our detection mechanism
-- Aura spell IDs should be accessible for friendly player debuffs
-- Use issecretvalue() guard on ANY AuraData field before operating on it
-- Do NOT use COMBAT_LOG_EVENT_UNFILTERED — it is removed
+- Spell ID 1246502 is confirmed as the Avenger's Shield DEBUFF (not just the cast)
+- Debuff name: "Avenger's Shield", dispelName: "Magic", isHarmful: true
+- Detection uses UNIT_AURA event payload (info.addedAuras), NOT GetAuraDataByIndex
+- Tracks by auraInstanceID for removal detection via info.removedAuraInstanceIDs
+- Do NOT use COMBAT_LOG_EVENT_UNFILTERED — it is removed in 12.0
 - Do NOT use SendAddonMessage — blocked inside instances
-- Do NOT perform math on health/power values — not needed for this addon
-- Duration/expiration fields in AuraData MAY be secret — we only need
-  the boolean "has debuff or not" for MVP, not remaining duration
 
 warcraft.wiki.gg is the authoritative community reference (current as of 12.0.1).
 
@@ -75,7 +102,7 @@ warcraft.wiki.gg is the authoritative community reference (current as of 12.0.1)
 ## Module Responsibilities
 - Core.lua: addon init, SavedVariables, namespace setup, nothing else
 - SlashCommands.lua: /kv router, import/export, healer number, test, diag
-- DebuffDetector.lua: UNIT_AURA registration, scan for spell 1246502, callbacks
+- DebuffDetector.lua: UNIT_AURA event payload processing for spell 1246502
 - PriorityEngine.lua: sort debuffed players by priority list, compute assignments
 - FrameFinder.lua: detect raid frame addon, find unit frames, cache references
 - GlowManager.lua: apply/remove glow overlays, manage glow lifecycle

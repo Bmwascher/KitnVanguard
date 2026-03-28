@@ -107,6 +107,57 @@ dropsecretaccess()
 
 ## Correct Code Patterns
 
+
+### VERIFIED IN-GAME: Aura Detection (March 2026)
+
+This was confirmed through live testing inside a raid instance:
+
+| Method | Secret? | Use? |
+|--------|---------|------|
+| C_UnitAuras.GetAuraDataByIndex() fields | YES — spellId, name, isHarmful, dispelName, duration all secret | NEVER use for detection inside instances |
+| UNIT_AURA event info.addedAuras entries | NO — spellId, name, isHarmful, dispelName all readable | USE THIS for aura detection |
+| auraInstanceID | NO — clean in both paths | USE THIS for tracking and removal |
+| info.removedAuraInstanceIDs | NO — clean | USE THIS for detecting dispels/removals |
+
+The correct aura detection pattern inside instances:
+
+```lua
+-- WRONG: GetAuraDataByIndex returns secret fields inside instances
+for i = 1, 40 do
+    local data = C_UnitAuras.GetAuraDataByIndex(unit, i, "HARMFUL")
+    if data and data.spellId == TARGET_SPELL_ID then  -- ERROR: secret comparison
+        -- This will fail
+    end
+end
+
+-- CORRECT: Use event payload which has clean values
+frame:RegisterEvent("UNIT_AURA")
+frame:SetScript("OnEvent", function(self, event, unit, info)
+    if not info then return end
+    -- Detect new debuffs
+    if info.addedAuras then
+        for _, aura in pairs(info.addedAuras) do
+            if aura.spellId == TARGET_SPELL_ID then
+                -- spellId is NOT secret in addedAuras
+                -- Track by aura.auraInstanceID for later removal
+            end
+        end
+    end
+    -- Detect removals
+    if info.removedAuraInstanceIDs then
+        for _, id in pairs(info.removedAuraInstanceIDs) do
+            -- Clean up tracked auras by instance ID
+        end
+    end
+    -- Handle full aura refresh (roster change, zone change)
+    if info.isFullUpdate then
+        -- Wipe and rebuild tracking from addedAuras
+    end
+end)
+```
+
+This is the ONLY reliable way to detect specific auras inside instances in 12.0.
+
 ### Pattern 1: Passthrough (most common)
 
 Pass secret values directly to widget APIs that accept them.
