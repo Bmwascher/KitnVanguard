@@ -1,6 +1,7 @@
 -- Luacheck configuration for KitnVanguard addon
 std = "lua51"
 max_line_length = false
+self = false
 exclude_files = {
     "Libs/**",
     ".wow-api-reference/**",

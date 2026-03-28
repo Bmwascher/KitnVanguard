@@ -1,0 +1,15 @@
+## Interface: 120001
+## Title: KitnVanguard
+## Notes: Dispel assignment coordinator for Lightblinded Vanguard (Mythic)
+## Author: Kitn
+## Version: @project-version@
+## SavedVariables: KitnVanguardDB
+## IconTexture: Interface\Icons\Spell_Holy_DispelMagic
+## X-Website: https://github.com/Bmwascher/KitnVanguard
+
+Core.lua
+Modules\PriorityEngine.lua
+Modules\DebuffDetector.lua
+Modules\FrameFinder.lua
+Modules\GlowManager.lua
+Modules\SlashCommands.lua

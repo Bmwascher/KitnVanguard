@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(luacheck Core.lua Modules/SlashCommands.lua --config .luacheckrc)"
+      "Bash(luacheck Core.lua Modules/SlashCommands.lua --config .luacheckrc)",
+      "Bash(luacheck:*)",
+      "WebFetch(domain:warcraft.wiki.gg)"
     ]
   }
 }

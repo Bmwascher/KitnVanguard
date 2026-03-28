@@ -62,10 +62,11 @@ frames differently. The addon needs a frame finder module:
 
 #### Supported addons (in priority order):
 1. Blizzard Default — CompactRaidFrameContainer children, match by unit
-2. ElvUI — ElvUF_ prefixed frames, match by unit attribute
+2. Danders - DandersRaidGroup (need to confirm API)
 3. Cell — Cell.unitButtons or Cell's frame API
 4. VuhDo — Vd1H prefixed frames
-5. Fallback — EnumerateFrames() scan for frames with matching unit
+5. ElvUI — ElvUF_ prefixed frames, match by unit attribute
+6. Fallback — EnumerateFrames() scan for frames with matching unit
 
 #### Glow implementation:
 - Use LibCustomGlow or ActionButton_ShowOverlayGlow
