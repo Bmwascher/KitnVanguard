@@ -5,7 +5,17 @@
       "Bash(luacheck:*)",
       "WebFetch(domain:warcraft.wiki.gg)",
       "Bash(curl:*)",
-      "Bash(python3 -c \"import sys,json; [print\\(f[''''name'''']\\) for f in json.loads\\(sys.stdin.read\\(\\)\\)]\")"
+      "Bash(python3 -c \"import sys,json; [print\\(f[''''name'''']\\) for f in json.loads\\(sys.stdin.read\\(\\)\\)]\")",
+      "Bash(find \"C:\\\\Program Files \\(x86\\)\\\\World of Warcraft\\\\_retail_\\\\Interface\\\\AddOns\\\\NorthernSkyRaidTools\" -type f -name \"*.lua\")",
+      "Bash(wc:*)",
+      "Bash(find \"C:\\\\Program Files \\(x86\\)\\\\World of Warcraft\\\\_retail_\\\\Interface\\\\AddOns\\\\NorthernSkyRaidTools\" -name \"*.lua\" -type f)",
+      "Bash(ls Libs/LibDeflate/*.lua)",
+      "Bash(ls Libs/AceComm-3.0/*.lua)",
+      "Bash(ls Libs/AceSerializer-3.0/*.lua)",
+      "Bash(find 'C:\\\\Users\\\\bmwas\\\\Documents\\\\!KitnUI Core\\\\Midnight 12.0\\\\KitnEssentials\\\\Modules' -iname *ebon* -o -iname *sound*)",
+      "Bash(xargs grep:*)",
+      "Bash(find 'C:\\\\Users\\\\bmwas\\\\Documents\\\\!KitnUI Core\\\\Midnight 12.0\\\\KitnEssentials\\\\GUI' -name *GUIFrame* -o -name *GUIMain*)",
+      "Bash(ls -d Libs/*/)"
     ]
   }
 }

@@ -16,14 +16,21 @@ Read @KitnVanguard_SPEC.md for the full design specification.
 ```
 KitnVanguard/
 ├── KitnVanguard.toc           # Addon manifest
-├── Core.lua                    # Initialization, event handling, config
+├── Core.lua                    # Initialization, SavedVariables, namespace
 ├── Modules/
 │   ├── SlashCommands.lua       # /kv command router and all subcommands
-│   ├── DebuffDetector.lua      # UNIT_AURA scanning for spell 1246502
-│   ├── PriorityEngine.lua      # Deterministic sort and healer assignment
-│   ├── FrameFinder.lua         # Raid frame detection (Blizzard/ElvUI/Cell/VuhDo)
-│   └── GlowManager.lua        # Apply and remove glow on raid frames
-├── Libs/                       # Embedded libraries (LibCustomGlow if needed)
+│   ├── DebuffDetector.lua      # UNIT_AURA detection with collection window
+│   ├── PriorityEngine.lua      # Two-pass healer assignment (self-dispel + priority)
+│   ├── GlowManager.lua         # LibCustomGlow glow on raid frames (LibGetFrame)
+│   ├── AlertFrame.lua           # Center-screen text + class icon alert
+│   ├── Sync.lua                 # AceComm priority list sync on ready check
+│   └── SettingsPanel.lua        # Blizzard addon settings integration
+├── GUI/
+│   ├── Theme.lua                # Dark theme colors and font helpers
+│   ├── Widgets.lua              # Custom UI widgets (toggle, dropdown, slider, etc.)
+│   └── ConfigFrame.lua          # Main config window with tabbed interface
+├── Libs/                       # Embedded libraries (LibCustomGlow, LibGetFrame, AceComm, etc.)
+├── Media/                      # Textures (collapse.tga, KitnCustomCrossv3.png)
 ├── .wow-api-reference/         # Symlink to Blizzard API docs
 └── .claude/                    # Claude Code config
 ```
@@ -100,12 +107,15 @@ warcraft.wiki.gg is the authoritative community reference (current as of 12.0.1)
 - Glow application must not taint raid frames — use overlay frames if needed
 
 ## Module Responsibilities
-- Core.lua: addon init, SavedVariables, namespace setup, nothing else
-- SlashCommands.lua: /kv router, import/export, healer number, test, diag
-- DebuffDetector.lua: UNIT_AURA event payload processing for spell 1246502
-- PriorityEngine.lua: sort debuffed players by priority list, compute assignments
-- FrameFinder.lua: detect raid frame addon, find unit frames, cache references
-- GlowManager.lua: apply/remove glow overlays, manage glow lifecycle
+- Core.lua: addon init, SavedVariables (deep merge), namespace, minimap button
+- SlashCommands.lua: /kv router and all subcommands
+- DebuffDetector.lua: UNIT_AURA detection, encounter scoping, healer list building
+- PriorityEngine.lua: two-pass assignment (self-dispel + priority), dwarf deprioritization
+- GlowManager.lua: LibCustomGlow glow on raid frames via LibGetFrame
+- AlertFrame.lua: center-screen text alert with class icon and sound
+- Sync.lua: AceComm priority list sync on ready check / pull timer
+- SettingsPanel.lua: Blizzard addon settings integration
+- GUI/ConfigFrame.lua: tabbed config GUI (General, Scan Priority, Glow, Text Alert)
 
 ## Verification After Code Changes
 After modifying any .lua file:

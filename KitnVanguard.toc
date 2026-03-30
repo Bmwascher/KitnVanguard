@@ -1,22 +1,39 @@
-## Interface: 120001
-## Title: KitnVanguard
+## Interface: 120000, 120001
+## Title: |cffFF008CKitn|r|cffffffffVanguard|r
 ## Notes: Dispel assignment coordinator for Lightblinded Vanguard (Mythic)
-## Author: Kitn
+## Author: Bitebtw
 ## Version: @project-version@
 ## SavedVariables: KitnVanguardDB
 ## OptionalDeps: Masque
-## IconTexture: Interface\Icons\Spell_Holy_DispelMagic
-## X-Website: https://github.com/Bmwascher/KitnVanguard
+## IconTexture: 7448211
+## X-Curse-Project-ID: 1499891
+## X-Wago-ID: O67D5aK3
 
 # Libraries
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
 Libs\LibGetFrame-1.0\LibGetFrame-1.0.lua
 Libs\LibCustomGlow-1.0\LibCustomGlow-1.0.lua
+Libs\AceComm-3.0\ChatThrottleLib.lua
+Libs\AceComm-3.0\AceComm-3.0.lua
+Libs\AceSerializer-3.0\AceSerializer-3.0.lua
+Libs\LibSerialize\LibSerialize.lua
+Libs\LibDeflate\LibDeflate.lua
+Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+Libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+Libs\LibSharedMedia-3.0\LibSharedMedia-3.0.lua
 
 # Core
 Core.lua
 Modules\PriorityEngine.lua
 Modules\DebuffDetector.lua
 Modules\GlowManager.lua
+Modules\AlertFrame.lua
+Modules\Sync.lua
+Modules\SettingsPanel.lua
 Modules\SlashCommands.lua
+
+# GUI
+GUI\Theme.lua
+GUI\Widgets.lua
+GUI\ConfigFrame.lua

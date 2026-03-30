@@ -22,7 +22,8 @@ read_globals = {
     "wipe", "CopyTable", "tContains", "strsub", "strlen",
 
     -- Frame and UI
-    "CreateFrame", "UIParent", "Settings",
+    "CreateFrame", "UIParent", "Settings", "ColorPickerFrame", "GameTooltip",
+    "SettingsPanel",
     "BackdropTemplateMixin",
     "CompactRaidFrameContainer",
     "EnumerateFrames",
@@ -38,6 +39,10 @@ read_globals = {
     -- Raid and group
     "IsInRaid", "IsInGroup", "GetNumGroupMembers",
     "UnitInRaid", "UnitInParty",
+    "UnitIsGroupLeader", "UnitIsGroupAssistant",
+
+    -- Chat / communication
+    "C_ChatInfo",
 
     -- Auras (critical for this addon)
     "C_UnitAuras",
@@ -59,8 +64,18 @@ read_globals = {
     "ActionButton_ShowOverlayGlow",
     "ActionButton_HideOverlayGlow",
 
+    -- Class colors
+    "RAID_CLASS_COLORS",
+
+    -- Instance/encounter
+    "IsEncounterInProgress", "GetInstanceInfo",
+
+    -- Sound
+    "PlaySound", "PlaySoundFile", "StopSound",
+
     -- Misc
-    "LibStub", "ReloadUI",
+    "LibStub", "ReloadUI", "GetTime",
+    "UISpecialFrames",
     "print", "date",
 
     -- Encoding

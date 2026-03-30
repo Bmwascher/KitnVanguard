@@ -10,7 +10,8 @@ description: >
   COMBAT_LOG, CLEU, aura, buff, debuff, spell, cooldown, nameplate, combat,
   secret, taint, health, power, mana, energy, rage, unit frame, status bar,
   GetSpellInfo, GetSpellCooldown, CombatLogGetCurrentEventInfo, C_DamageMeter,
-  issecretvalue, SecretValues, addon restrictions, restricted actions.
+  issecretvalue, SecretValues, addon restrictions, restricted actions,
+  IsAuraFilteredOutByInstanceID, dispelName, addedAuras, removedAuraInstanceIDs.
 ---
 
 # WoW 12.0 Midnight - API Restrictions and Secret Values
@@ -41,6 +42,16 @@ booleans). They enforce restrictions at the language level:
   pass to a specific set of approved Blizzard API functions, pass to
   widget APIs that accept secrets
 - Untainted code: secrets behave like regular values with no restrictions
+
+### Critical property of secret values:
+SECRET VALUES ARE NOT NIL. A secret value wrapping any type will return
+true for `secretValue ~= nil`. This is exploitable for detection:
+```lua
+-- This works even when dispelName is secret:
+if auraData.dispelName ~= nil then
+    -- Aura IS dispellable (we don't know the type, but it has one)
+end
+```
 
 ### Testing for secrets
 
@@ -82,8 +93,8 @@ dropsecretaccess()
 | UnitName(unit) | string | Non-player units in instances |
 | UnitGUID(unit) | string | Creature units in instances |
 | C_Spell.GetSpellCooldown(spellID) | table | In combat or instance |
-| C_UnitAuras.GetAuraDataByIndex() | AuraData | Many fields secret |
-| C_UnitAuras.GetAuraDataByAuraInstanceID() | AuraData | Many fields secret |
+| C_UnitAuras.GetAuraDataByIndex() | AuraData | Most fields secret for other players |
+| C_UnitAuras.GetAuraDataByAuraInstanceID() | AuraData | Most fields secret for other players |
 
 ### New 12.0 replacement APIs (return secrets but work with display):
 
@@ -105,58 +116,154 @@ dropsecretaccess()
 
 ---
 
-## Correct Code Patterns
+## VERIFIED IN-GAME: Aura System Behavior (March 2026)
 
+These findings were confirmed through live testing inside raid instances.
+This is the most important section for any addon that needs to detect
+auras, debuffs, or dispellable effects on raid members.
 
-### VERIFIED IN-GAME: Aura Detection (March 2026)
+### UNIT_AURA Event Payload (info.addedAuras)
 
-This was confirmed through live testing inside a raid instance:
+| Scenario | spellId | name | isHarmful | dispelName | auraInstanceID |
+|----------|---------|------|-----------|------------|----------------|
+| Your own auras on yourself | Clean | Clean | Clean | Clean | Clean |
+| Your heals/buffs on others | Clean | Clean | Clean | Clean | Clean |
+| Boss-applied auras on YOU | Clean | Clean | Clean | Clean | Clean |
+| Boss-applied auras on OTHER players | SECRET | SECRET | SECRET | SECRET | Needs verification |
 
-| Method | Secret? | Use? |
-|--------|---------|------|
-| C_UnitAuras.GetAuraDataByIndex() fields | YES — spellId, name, isHarmful, dispelName, duration all secret | NEVER use for detection inside instances |
-| UNIT_AURA event info.addedAuras entries | NO — spellId, name, isHarmful, dispelName all readable | USE THIS for aura detection |
-| auraInstanceID | NO — clean in both paths | USE THIS for tracking and removal |
-| info.removedAuraInstanceIDs | NO — clean | USE THIS for detecting dispels/removals |
+KEY FINDING: The same event (UNIT_AURA info.addedAuras) returns clean
+data for auras on yourself but SECRET data for boss-applied auras on
+other raid members. This means you CANNOT reliably check spellId or
+name to identify specific debuffs on other players.
 
-The correct aura detection pattern inside instances:
+### C_UnitAuras.GetAuraDataByIndex() — DO NOT USE FOR DETECTION
+
+All fields are secret inside instances when querying other players:
+spellId, name, isHarmful, dispelName, duration, expirationTime.
+Only auraInstanceID is confirmed non-secret.
+
+### C_UnitAuras.IsAuraFilteredOutByInstanceID()
+
+This API accepts a unit, auraInstanceID, and filter string. It returns
+a non-secret boolean. When it returns false with "HARMFUL" filter, the
+aura IS harmful. This was discovered from a working WeakAura implementation.
 
 ```lua
--- WRONG: GetAuraDataByIndex returns secret fields inside instances
-for i = 1, 40 do
-    local data = C_UnitAuras.GetAuraDataByIndex(unit, i, "HARMFUL")
-    if data and data.spellId == TARGET_SPELL_ID then  -- ERROR: secret comparison
-        -- This will fail
-    end
-end
+local isHarmful = not C_UnitAuras.IsAuraFilteredOutByInstanceID(unit, auraInstanceID, "HARMFUL")
+```
 
--- CORRECT: Use event payload which has clean values
+NOTE: This only works if auraInstanceID itself is not secret. Testing
+showed auraInstanceID is clean for your own auras but may be secret for
+other players — verify in-game before relying on this for cross-player detection.
+
+### Secret ~= nil Pattern
+
+Secret values are NOT nil. This enables presence-checking:
+```lua
+-- Works even on secret values:
+if auraData.dispelName ~= nil then
+    -- Has a dispel type (Magic, Curse, Disease, Poison, or secret)
+end
+```
+
+### Time-Window Collection Pattern (Recommended for Debuff Waves)
+
+When a boss applies debuffs to multiple players simultaneously, use a
+time-window approach to collect all affected players:
+
+```lua
+local windowActive = false
+local collected = {}
+
+-- On each UNIT_AURA with harmful+dispellable detection:
+if not windowActive then
+    windowActive = true
+    collected = {}
+    C_Timer.After(0.2, function()
+        windowActive = false
+        -- Sort collected targets by priority
+        -- Assign healers
+        -- Apply glows
+    end)
+end
+table.insert(collected, { unit = unit, auraInstanceID = id })
+```
+
+Benefits:
+- Batches simultaneous debuff applications into one assignment pass
+- Handles variable debuff counts (8 normal, 20 empowered)
+- 0.2s window matches server batch timing for ability casts
+- Mass dispel threshold: skip assignment if count > 15
+
+### Correct Aura Detection Pattern (Proven Working)
+
+```lua
 frame:RegisterEvent("UNIT_AURA")
 frame:SetScript("OnEvent", function(self, event, unit, info)
     if not info then return end
+
     -- Detect new debuffs
     if info.addedAuras then
         for _, aura in pairs(info.addedAuras) do
-            if aura.spellId == TARGET_SPELL_ID then
-                -- spellId is NOT secret in addedAuras
-                -- Track by aura.auraInstanceID for later removal
+            local id = aura.auraInstanceID
+            if id and not issecretvalue(id) then
+                -- Check if harmful using filter API (non-secret return)
+                local isHarmful = not C_UnitAuras.IsAuraFilteredOutByInstanceID(
+                    unit, id, "HARMFUL")
+                -- Check if dispellable (secret ~= nil trick)
+                local isDispellable = aura.dispelName ~= nil
+
+                if isHarmful and isDispellable then
+                    -- This is a harmful, dispellable debuff
+                    -- Add to tracking, start collection window
+                end
             end
         end
     end
-    -- Detect removals
+
+    -- Detect removals (dispels)
     if info.removedAuraInstanceIDs then
         for _, id in pairs(info.removedAuraInstanceIDs) do
-            -- Clean up tracked auras by instance ID
+            -- Remove from tracking
         end
     end
-    -- Handle full aura refresh (roster change, zone change)
+
+    -- Handle full aura refresh
     if info.isFullUpdate then
-        -- Wipe and rebuild tracking from addedAuras
+        -- Rebuild tracking state
     end
 end)
 ```
 
-This is the ONLY reliable way to detect specific auras inside instances in 12.0.
+### Anti-Patterns (will break in instances)
+
+```lua
+-- WRONG: GetAuraDataByIndex fields are secret for other players
+for i = 1, 40 do
+    local data = C_UnitAuras.GetAuraDataByIndex(unit, i, "HARMFUL")
+    if data and data.spellId == TARGET_SPELL then  -- ERROR: secret comparison
+        -- Will never match
+    end
+end
+
+-- WRONG: Checking isHarmful directly (secret for other players)
+if auraData.isHarmful then  -- ERROR: secret in conditional
+    -- Will error
+end
+
+-- WRONG: String matching on aura name (secret for other players)
+if auraData.name == "Avenger's Shield" then  -- ERROR: secret comparison
+    -- Will error
+end
+
+-- RIGHT: Use IsAuraFilteredOutByInstanceID (non-secret return)
+-- RIGHT: Use dispelName ~= nil (secret is not nil)
+-- RIGHT: Use time-window collection for batch detection
+```
+
+---
+
+## Correct Code Patterns
 
 ### Pattern 1: Passthrough (most common)
 
@@ -167,7 +274,7 @@ NEVER inspect, compare, or perform math on the values.
 -- WRONG: will error when health is secret
 local health = UnitHealth("target")
 if health < UnitHealthMax("target") * 0.3 then
-    frame:SetBackdropColor(1, 0, 0)  -- turn red when low
+    frame:SetBackdropColor(1, 0, 0)
 end
 
 -- CORRECT: passthrough to StatusBar, which accepts secrets
@@ -183,13 +290,10 @@ Use issecretvalue() when you need different behavior for
 secret vs non-secret contexts.
 
 ```lua
--- CORRECT: check before operating
 local health = UnitHealth("player")
 if issecretvalue(health) then
-    -- Restricted context: passthrough only
     myBar:SetValue(health)
 else
-    -- Unrestricted: safe to do math
     local pct = health / UnitHealthMax("player")
     if pct < 0.3 then
         myBar:SetStatusBarColor(1, 0, 0)
@@ -199,17 +303,11 @@ end
 
 ### Pattern 3: ColorCurve for health coloring
 
-Use the new Curve system instead of manual color calculation.
-
 ```lua
--- CORRECT: Blizzard's 12.0 solution for health bar colors
 local colorCurve = C_CurveUtil.CreateColorCurve()
--- Add color stops: percentage to R, G, B
 colorCurve:AddPoint(0.0, 1.0, 0.0, 0.0)   -- 0% = red
 colorCurve:AddPoint(0.5, 1.0, 1.0, 0.0)   -- 50% = yellow
 colorCurve:AddPoint(1.0, 0.0, 1.0, 0.0)   -- 100% = green
-
--- Apply to a health bar using secret-safe percentage
 local pct = UnitHealthPercent("target")
 myHealthBar:SetStatusBarColorCurve(colorCurve, pct)
 ```
@@ -217,24 +315,17 @@ myHealthBar:SetStatusBarColorCurve(colorCurve, pct)
 ### Pattern 4: Duration objects for timers
 
 ```lua
--- CORRECT: secret-safe timer display
 local duration = C_DurationUtil.CreateDuration()
--- SetTimerDuration auto-updates the bar without addon polling
 myTimerBar:SetTimerDuration(duration)
 ```
 
 ### Pattern 5: Restriction status check
 
 ```lua
--- CORRECT: check if restrictions are active before using old patterns
 if not GetRestrictedActionStatus("secretHealth") then
-    -- Not restricted right now, old patterns are safe
     local hp = UnitHealth("player")
-    if hp < 1000 then
-        -- This math is safe here
-    end
+    if hp < 1000 then end
 else
-    -- Restricted, passthrough only
     myBar:SetValue(UnitHealth("player"))
 end
 ```
@@ -242,10 +333,9 @@ end
 ### Pattern 6: FontString with secrets
 
 ```lua
--- CORRECT: SetText accepts secrets
 local name = UnitName("target")
 myNameText:SetText(name)
--- NOTE: After this, myNameText:GetText() will return a SECRET
+-- After this, myNameText:GetText() returns SECRET
 -- Check with: myNameText:HasSecretValues()
 -- Clear with: myNameText:SetToDefaults()
 ```
@@ -254,26 +344,16 @@ myNameText:SetText(name)
 
 ## Widget Secret Aspects
 
-When you pass a secret value to a widget API, the widget gets marked
-with a secret aspect. This affects other APIs on the same widget:
+When you pass a secret value to a widget API, the widget gets marked:
 
-| Action | Aspect applied | Consequence |
-|--------|---------------|-------------|
+| Action | Aspect | Consequence |
+|--------|--------|-------------|
 | FontString:SetText(secretStr) | Text | GetText() returns secret |
 | Texture:SetTexture(secretFileID) | Texture | GetTexture() returns secret |
 | StatusBar:SetValue(secretNum) | Value | GetValue() returns secret |
 
-Clearing aspects:
-```lua
-myWidget:SetToDefaults()  -- Clears all secret aspects
-```
-
-Checking aspects:
-```lua
-if myWidget:HasSecretValues() then
-    -- Widget is marked, some getters will return secrets
-end
-```
+Clear: myWidget:SetToDefaults()
+Check: myWidget:HasSecretValues()
 
 ---
 
@@ -284,50 +364,23 @@ end
 - SendAddonMessageLogged() is also blocked
 - No addon-to-addon communication in dungeons or raids
 - These restrictions lift when you leave the instance
+- AceComm-3.0 will fail silently inside instances
 
 ---
 
 ## How to Verify API Behavior
 
-When you encounter an API you are unsure about:
-
-1. Check extracted docs: Look in .wow-api-reference/Interface/AddOns/Blizzard_APIDocumentationGenerated/
-   for the relevant system file. Search for SecretReturns, ConditionalSecret, SecretArguments.
-
-2. Check warcraft.wiki.gg: Search for the function name. The wiki is updated to 12.0.1.
-   Example URL: https://warcraft.wiki.gg/wiki/API_UnitHealth
-
+1. Check extracted docs in .wow-api-reference/ for SecretReturns fields
+2. Check warcraft.wiki.gg (updated to 12.0.1)
 3. Check the Secret Values article: https://warcraft.wiki.gg/wiki/Secret_Values
-
-4. When in doubt, treat the return as potentially secret. Use the issecretvalue() guard pattern.
-
----
-
-## Common Mistakes Claude Will Make
-
-1. Using COMBAT_LOG_EVENT_UNFILTERED: This event is GONE. Period. If you need damage
-   meter data, use C_DamageMeter. For combat events, use RegisterEventCallback where available.
-
-2. Comparing health/power values: Any "if health < X" will error in combat.
-   Use passthrough patterns or issecretvalue() guards.
-
-3. String formatting unit names: string.format("Target: %s", UnitName("target"))
-   will error if UnitName returns a secret. Use SetText() passthrough instead.
-
-4. Iterating aura tables: AuraData fields may be secret. Always use issecretvalue()
-   or issecrettable() before accessing fields programmatically.
-
-5. Using old GetSpellInfo patterns: Many spell APIs changed in 11.0 AND again in 12.0.
-   Always check the current API signature, not cached knowledge.
-
-6. Sending addon messages inside instance checks: Any code path that runs inside
-   a dungeon or raid cannot use SendAddonMessage.
+4. When in doubt, treat the return as potentially secret
+5. When stuck on 12.0 restrictions, existing WeakAuras or working addons
+   can sometimes reveal which APIs bypass secret values in practice, but
+   these references are rare and may not exist for your specific problem
 
 ---
 
 ## Quick Reference: Secret-Accepting Widget APIs
-
-These Blizzard APIs accept secret values from tainted code:
 
 - StatusBar:SetValue(secretNumber)
 - StatusBar:SetMinMaxValues(secretMin, secretMax)

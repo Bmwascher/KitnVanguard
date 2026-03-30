@@ -8,6 +8,8 @@ ignore:
   - .gitignore
   - .wow-api-reference
   - KitnVanguard_SPEC.md
+  - CLAUDE.md
+  - CURSEFORGE.md
 
 externals:
   Libs/LibStub:
@@ -20,3 +22,22 @@ externals:
     url: https://github.com/mrbuds/LibGetFrame
   Libs/LibCustomGlow-1.0:
     url: https://github.com/Stanzilla/LibCustomGlow
+  Libs/AceComm-3.0:
+    url: https://repos.wowace.com/wow/ace3/trunk/AceComm-3.0
+    tag: latest
+  Libs/AceSerializer-3.0:
+    url: https://repos.wowace.com/wow/ace3/trunk/AceSerializer-3.0
+    tag: latest
+  Libs/LibSerialize:
+    url: https://github.com/rossnichols/LibSerialize
+  Libs/LibDeflate:
+    url: https://github.com/SafeteeWoW/LibDeflate
+  Libs/LibDataBroker-1.1:
+    url: https://repos.wowace.com/wow/libdatabroker-1-1/trunk
+    tag: latest
+  Libs/LibDBIcon-1.0:
+    url: https://repos.wowace.com/wow/libdbicon-1-0/trunk/LibDBIcon-1.0
+    tag: latest
+  Libs/LibSharedMedia-3.0:
+    url: https://repos.wowace.com/wow/libsharedmedia-3-0/trunk/LibSharedMedia-3.0
+    tag: latest
