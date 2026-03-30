@@ -2,29 +2,30 @@ local _, ns = ...
 
 -- Theme system matching KitnEssentials visual style
 local Theme = {
-    -- Backgrounds (dark mode)
-    bgDark         = { 0.0627, 0.0627, 0.0627, 0.95 },
-    bgMedium       = { 0.0902, 0.0902, 0.0902, 0.95 },
-    bgLight        = { 0.0314, 0.0314, 0.0314, 0.95 },
-    bgHover        = { 0.1804, 0.1804, 0.1804, 0.95 },
+    -- Backgrounds (matches KES ThemeDefaults)
+    bgDark         = { 0.0627, 0.0627, 0.0627, 0.75 },
+    bgMedium       = { 0.0902, 0.0902, 0.0902, 0.75 },
+    bgLight        = { 0.0314, 0.0314, 0.0314, 0.75 },
+    bgHover        = { 0.1804, 0.1804, 0.1804, 0.75 },
     border         = { 0, 0, 0, 1 },
 
-    -- Accent (KitnUI pink)
+    -- Accent (KitnUI pink #FF008C)
     accent         = { 1.0, 0.0, 0.549, 1 },
     accentHover    = { 1.0, 0.0, 0.549, 0.25 },
     accentDim      = { 0.80, 0.0, 0.439, 1 },
 
-    -- Text
+    -- Text (matches KES: all white)
     textPrimary    = { 1, 1, 1, 1 },
-    textSecondary  = { 0.75, 0.75, 0.75, 1 },
-    textMuted      = { 0.5, 0.5, 0.5, 1 },
+    textSecondary  = { 1, 1, 1, 1 },
+    textMuted      = { 1, 1, 1, 1 },
 
     -- Selection
     selectedBg     = { 1.0, 0.0, 0.549, 0.20 },
+    selectedText   = { 0.902, 0.902, 0.902, 1 },
 
     -- Status
-    success        = { 0.30, 0.80, 0.40, 1 },
     error          = { 0.90, 0.30, 0.30, 1 },
+    success        = { 0.30, 0.80, 0.40, 1 },
     warning        = { 0.90, 0.75, 0.30, 1 },
 
     -- Dimensions

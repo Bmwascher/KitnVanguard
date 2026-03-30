@@ -91,7 +91,7 @@ local defaults = {
         yOffset = 200,
         duration = 0, -- 0 = stay until cleared
         soundEnabled = true,
-        soundFile = "RaidWarning",
+        soundFile = "Dispel",
         soundChannel = "Master",
     },
     minimap = { hide = false },
@@ -179,8 +179,11 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
             LDBIcon:Register("KitnVanguard", broker, ns.db.minimap)
         end
 
-        local version = C_AddOns.GetAddOnMetadata(ADDON_NAME, "Version") or "dev"
-        ns:Print("v" .. version .. " loaded. Type /kv help for commands.")
+        -- Delayed login message to avoid chat spam wall
+        C_Timer.After(3, function()
+            local version = C_AddOns.GetAddOnMetadata(ADDON_NAME, "Version") or "dev"
+            ns:Print("v" .. version .. " loaded. Type /kv config or /kv help.")
+        end)
         self:UnregisterEvent("PLAYER_LOGIN")
     end
 end)
