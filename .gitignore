@@ -7,3 +7,9 @@ Thumbs.db
 *.swp
 *.swo
 .wow-api-reference/
+.claude/
+.luacheckrc
+.pkgmeta
+CLAUDE.md
+CURSEFORGE.md
+KitnVanguard_SPEC.md
