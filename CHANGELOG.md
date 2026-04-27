@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.2] - 2026-04-26
+### Added
+- 12.0.5 (patch) interface support
+- Minimap button toggle in Advanced settings (next to Addon Enabled)
+
 ## [1.0.0] - 2026-03-30
 ### Added
 - Automated dispel assignment for Mythic raid encounters

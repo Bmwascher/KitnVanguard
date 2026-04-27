@@ -1,4 +1,4 @@
-## Interface: 120000, 120001
+## Interface: 120000, 120001, 120005
 ## Title: |cffFF008CKitn|r|cffffffffVanguard|r
 ## Notes: Dispel assignment coordinator for Lightblinded Vanguard (Mythic)
 ## Author: Bitebtw

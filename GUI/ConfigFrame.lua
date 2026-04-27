@@ -381,11 +381,34 @@ function ConfigFrame:BuildGeneralTab(parent)
     ------------------------------------------------------------
     local advancedCard = Widgets:CreateCard(parent, "Advanced", yOffset)
 
-    local enabledToggle = Widgets:CreateToggle(parent, "Addon Enabled", db.enabled, function(val)
+    -- Addon Enabled + Minimap Button side by side
+    local toggleRow = CreateFrame("Frame", nil, parent)
+    toggleRow:SetHeight(36)
+
+    local enabledToggle = Widgets:CreateToggle(toggleRow, "Addon Enabled", db.enabled, function(val)
         db.enabled = val
         ns:Print("Addon " .. (val and "|cff00ff00enabled|r" or "|cffff0000disabled|r"))
     end)
-    advancedCard:AddRow(enabledToggle)
+    enabledToggle:SetPoint("TOPLEFT", toggleRow, "TOPLEFT", 0, 0)
+    enabledToggle:SetWidth(200)
+
+    local minimapToggle = Widgets:CreateToggle(toggleRow, "Minimap Button",
+        not db.minimap.hide, function(val)
+            db.minimap.hide = not val
+            local okIcon, LDBIcon = pcall(LibStub, "LibDBIcon-1.0")
+            if okIcon then
+                if val then
+                    LDBIcon:Show("KitnVanguard")
+                else
+                    LDBIcon:Hide("KitnVanguard")
+                end
+            end
+            ns:Print("Minimap button " .. (val and "|cff00ff00shown|r" or "|cffff0000hidden|r"))
+        end)
+    minimapToggle:SetPoint("TOPLEFT", toggleRow, "TOPLEFT", 220, 0)
+    minimapToggle:SetWidth(200)
+
+    advancedCard:AddRow(toggleRow)
 
     advancedCard:AddSpacing(T.paddingSmall)
 
